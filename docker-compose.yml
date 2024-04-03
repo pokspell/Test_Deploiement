@@ -10,22 +10,21 @@ services:
       - ./app/:/var/www/html # Mounts the local 'app' directory to the container's Nginx root
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
-    mem_limit: "512M"
 
   nginx: # NGINX Service
     container_name: nginx
-    image: nginxinc/nginx-unprivileged
+    build:
+      context: .
+      dockerfile: ./nginx/Dockerfile
     volumes:
-      - ./app/:/var/www/html # Mountlocal 'app' directory to the Nginx root
-      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
     ports:
+      - 444:443
       - 8080:80
     depends_on:
       - php-fpm  # Depends on the PHP-FPM service
       - mysql-db  # Depends on the MySQL database service
-    mem_limit: "512M"
 
   mysql-db: # MySQL Database Service
     image: mysql:8.0
@@ -46,10 +45,6 @@ services:
   phpmyadmin: # PHPMyAdmin Service
     image: phpmyadmin:latest
     container_name: phpmyadmin
-#    entrypoint: ["chgrp", "www-data", "/var/www/html/", "-R"]
-#    entrypoint: /bin/bash ./ docker-entrypoint.sh
-#    command: ["chgrp", "www-data", "/etc/phpmyadmin/", "-R"]
-#    user: 1000:1000
     links:
       - mysql-db # Links the PHPMyAdmin service to the MySQL database service
     ports:
@@ -58,10 +53,10 @@ services:
       PMA_HOST: mysql-db
       MYSQL_ROOT_PASSWORD: password # Use MySQL root password for PHPMyAdmin
     volumes:
-#      - ./entrypoint.sh:./entrypoint.sh
       - /bin/systemctl:/bin/systemctl
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
+    mem_limit: "512M"
 ################################################################################################
 #Wazuh Servers, Single Node
   wazuh.manager:
@@ -171,21 +166,6 @@ services:
     links:
       - wazuh.indexer:wazuh.indexer
       - wazuh.manager:wazuh.manager
-################################################################################################
-#NTP Server
-#  ntp:
-#    build: .
-#    image: cturra/ntp:latest
-#    container_name: ntp
-#    restart: always
-#    ports:
-#      - 123:123/udp
-#    environment:
-#      - NTP_SERVERS=time.cloudflare.com
-#      - LOG_LEVEL=0
-#      - TZ=America/Toronto
-#      - NOCLIENTLOG=true
-#      - ENABLE_NTS=true
 ################################################################################################
 volumes:
   wazuh_api_configuration:
